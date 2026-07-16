@@ -1,0 +1,1225 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#050B12" />
+  <title>Μελισσοζυγαριά Dashboard v5.1.1 Network Optional</title>
+
+  <link rel="preconnect" href="https://industrial.api.ubidots.com" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    :root {
+      --bg: #050B12;
+      --panel: #0B121C;
+      --line: #223044;
+      --text: #EAF2FF;
+      --muted: #93A4B8;
+      --blue: #2B7CFF;
+      --green: #33D17A;
+      --yellow: #F5C542;
+      --orange: #FF7A3D;
+      --red: #FF4D67;
+      --shadow: 0 18px 40px rgba(0,0,0,.38);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background:
+        radial-gradient(circle at 20% -10%, rgba(43,124,255,.25), transparent 28rem),
+        radial-gradient(circle at 90% 20%, rgba(51,209,122,.10), transparent 22rem),
+        var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      max-width: 520px;
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: max(14px, env(safe-area-inset-top)) 14px 22px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 2px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: linear-gradient(180deg, rgba(5,11,18,.98), rgba(5,11,18,.82) 75%, transparent);
+      backdrop-filter: blur(10px);
+    }
+
+    .bee {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: rgba(245,197,66,.12);
+      border: 1px solid rgba(245,197,66,.25);
+      font-size: 26px;
+    }
+
+    .title { flex: 1; min-width: 0; }
+
+    .title h1 {
+      font-size: 24px;
+      line-height: 1.05;
+      margin: 0;
+      letter-spacing: -.03em;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 3px;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 14px rgba(51,209,122,.75);
+    }
+
+    .icon-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(11,18,28,.85);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.22);
+      cursor: pointer;
+    }
+
+    .updated-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 12px;
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(11,18,28,.72);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .updated-bar strong { color: var(--text); font-weight: 600; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.035), transparent 40%),
+        rgba(11,18,28,.96);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      min-height: 148px;
+    }
+
+    .card.big,
+    .card.map-card,
+    .card.full {
+      grid-column: 1 / -1;
+    }
+
+    .card.big { min-height: 260px; }
+    .card.map-card { min-height: 290px; }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 14px 15px 0;
+    }
+
+    .card-head .ico {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: rgba(43,124,255,.12);
+      color: var(--blue);
+      font-size: 20px;
+    }
+
+    .card-head h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -.015em;
+    }
+
+    .card-body { padding: 13px 15px 14px; }
+
+    .metric {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 105px;
+      text-align: center;
+    }
+
+    .metric .label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .metric .value {
+      font-size: clamp(36px, 10vw, 50px);
+      line-height: .95;
+      font-weight: 800;
+      letter-spacing: -.05em;
+      color: var(--green);
+    }
+
+    .metric .unit {
+      font-size: 22px;
+      font-weight: 650;
+      color: var(--text);
+      margin-left: 4px;
+      letter-spacing: 0;
+    }
+
+    .metric .time {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 15px 16px;
+    }
+
+    .gauge {
+      width: 100%;
+      aspect-ratio: 1.65 / 1;
+      position: relative;
+      min-width: 0;
+    }
+
+    .gauge svg { width: 100%; height: 100%; overflow: visible; }
+
+    .gauge .center {
+      position: absolute;
+      left: 50%;
+      top: 70%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .gauge .center .num {
+      color: var(--blue);
+      font-size: 30px;
+      font-weight: 850;
+      letter-spacing: -.06em;
+      line-height: .9;
+    }
+
+    .gauge .center .kg {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .weight-side .big-value {
+      font-size: 52px;
+      font-weight: 850;
+      color: var(--blue);
+      letter-spacing: -.06em;
+      line-height: 1;
+    }
+
+    .weight-side .big-value .unit {
+      font-size: 24px;
+      color: var(--text);
+      letter-spacing: 0;
+      margin-left: 3px;
+    }
+
+    .weight-side .sub {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 7px;
+    }
+
+    .daily-row {
+      display: grid;
+      grid-template-columns: 1.2fr .85fr .9fr;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 0;
+      border-top: 1px solid rgba(34,48,68,.75);
+      font-size: 13px;
+    }
+
+    .daily-row:first-child { border-top: 0; }
+
+    .daily-head {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      padding-top: 0;
+    }
+
+    .daily-date { color: var(--text); font-weight: 650; }
+    .daily-weight { color: var(--muted); text-align: right; }
+    .daily-delta { text-align: right; font-weight: 800; }
+    .pos { color: var(--green); }
+    .neg { color: var(--red); }
+    .flat { color: var(--yellow); }
+
+    .battery-row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .battery-bar {
+      width: 90px;
+      height: 9px;
+      border-radius: 999px;
+      background: #293748;
+      overflow: hidden;
+    }
+
+    .battery-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--green);
+      border-radius: inherit;
+    }
+
+    .signal-wrap {
+      width: 100%;
+      display: flex;
+      align-items: end;
+      justify-content: center;
+      gap: 7px;
+      height: 64px;
+      margin: 6px 0 8px;
+    }
+
+    .signal-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2E3A4C;
+      align-self: flex-end;
+      margin-bottom: 4px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.08) inset;
+    }
+
+    .bar {
+      width: 18px;
+      border-radius: 6px 6px 3px 3px;
+      border: 2px solid #364457;
+      background: transparent;
+      transition: .25s ease;
+      opacity: .95;
+    }
+
+    .bar.b1 { height: 16px; }
+    .bar.b2 { height: 26px; }
+    .bar.b3 { height: 36px; }
+    .bar.b4 { height: 48px; }
+    .bar.b5 { height: 60px; }
+
+    .signal-good .bar.active,
+    .signal-good .signal-dot {
+      background: linear-gradient(180deg, #7CFF7C, #20B85A);
+      border-color: #6DEB84;
+      box-shadow: 0 0 13px rgba(51,209,122,.45);
+    }
+
+    .signal-mid .bar.active,
+    .signal-mid .signal-dot {
+      background: linear-gradient(180deg, #FFE36A, #FF9E2C);
+      border-color: #F5C542;
+      box-shadow: 0 0 13px rgba(245,197,66,.38);
+    }
+
+    .signal-bad .bar.active,
+    .signal-bad .signal-dot {
+      background: linear-gradient(180deg, #FF8DA0, #FF4D67);
+      border-color: #FF6D81;
+      box-shadow: 0 0 13px rgba(255,77,103,.38);
+    }
+
+    .rssi-db {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -.04em;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    .rssi-quality {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    #map {
+      height: 190px;
+      margin-top: 12px;
+      border-radius: 15px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #07101A;
+    }
+
+    .coords {
+      margin-top: 11px;
+      text-align: center;
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .map-link {
+      display: block;
+      text-align: center;
+      color: var(--muted);
+      text-decoration: none;
+      margin-top: 4px;
+      font-size: 13px;
+    }
+
+    .settings {
+      display: none;
+      margin: 0 0 13px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(11,18,28,.98);
+      box-shadow: var(--shadow);
+    }
+
+    .settings.open { display: block; }
+
+    .settings h3 { margin: 0 0 10px; font-size: 16px; }
+
+    .settings label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin: 10px 0 5px;
+    }
+
+    .settings input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #07101A;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-top: 12px;
+    }
+
+    button.primary, button.secondary {
+      border: 0;
+      border-radius: 13px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.primary { background: var(--blue); color: white; }
+
+    button.secondary {
+      background: #152235;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .error {
+      display: none;
+      padding: 10px 12px;
+      border-radius: 14px;
+      margin: 0 0 12px;
+      background: rgba(255,77,103,.12);
+      color: #FFD7DE;
+      border: 1px solid rgba(255,77,103,.28);
+      font-size: 13px;
+    }
+
+    .error.show { display: block; }
+    .leaflet-control-attribution { display: none; }
+
+    @media (max-width: 390px) {
+      .grid { gap: 10px; }
+      .card { min-height: 140px; }
+      .split { grid-template-columns: 1fr; }
+      .weight-side { text-align: center; }
+      .card.big { min-height: 345px; }
+      .signal-wrap { height: 58px; }
+      .bar { width: 15px; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="bee">🐝</div>
+      <div class="title">
+        <h1>Μελισσοζυγαριά</h1>
+        <div class="status"><span class="dot" id="onlineDot"></span><span id="onlineText">Σύνδεση...</span></div>
+      </div>
+      <button class="icon-btn" id="refreshBtn" title="Ανανέωση">↻</button>
+      <button class="icon-btn" id="settingsBtn" title="Ρυθμίσεις">⚙</button>
+    </header>
+
+    <section class="settings" id="settingsBox">
+      <h3>Ρυθμίσεις Ubidots</h3>
+      <label>Ubidots Token</label>
+      <input id="tokenInput" type="password" placeholder="Βάλε εδώ το Ubidots token" autocomplete="off" />
+      <div class="hint" id="tokenStatus">Token: --</div>
+      <label>Device label</label>
+      <input id="deviceInput" type="text" value="melissi-zygaria" />
+      <div class="actions">
+        <button class="primary" id="saveBtn">Αποθήκευση</button>
+        <button class="secondary" id="clearBtn">Καθαρισμός</button>
+      </div>
+    </section>
+
+    <div class="error" id="errorBox"></div>
+
+    <div class="updated-bar">
+      <span>🕒</span>
+      <span>Τελευταία ενημέρωση: <strong id="lastUpdate">--</strong></span>
+    </div>
+
+    <section class="grid">
+      <article class="card big">
+        <div class="card-head">
+          <div class="ico">⚖️</div>
+          <h2>Βάρος Κυψέλης</h2>
+        </div>
+        <div class="split">
+          <div class="gauge">
+            <svg viewBox="0 0 240 150" aria-hidden="true">
+              <path d="M30 120 A90 90 0 0 1 210 120" fill="none" stroke="#263244" stroke-width="27" stroke-linecap="butt"/>
+              <path id="gaugeArc" d="M30 120 A90 90 0 0 1 210 120" fill="none" stroke="#2B7CFF" stroke-width="27" stroke-linecap="butt" pathLength="100" stroke-dasharray="0 100"/>
+              <text x="29" y="142" fill="#93A4B8" font-size="12">0</text>
+              <text x="96" y="30" fill="#93A4B8" font-size="12">50</text>
+              <text x="201" y="142" fill="#93A4B8" font-size="12">100</text>
+            </svg>
+            <div class="center">
+              <div class="num" id="weightGauge">--</div>
+              <div class="kg">kg</div>
+            </div>
+          </div>
+
+          <div class="weight-side">
+            <div class="big-value"><span id="weightBig">--</span><span class="unit">kg</span></div>
+            <div class="sub">Καθαρό βάρος</div>
+            <div class="sub" id="weightTime">--</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><div class="ico" style="color:var(--yellow)">📅</div><h2>Διαφορά από Χθες</h2></div>
+        <div class="card-body metric">
+          <div class="label">Τελευταίο βάρος ημέρας</div>
+          <div><span class="value" id="dailyDelta">--</span><span class="unit">kg</span></div>
+          <div class="time" id="dailyDeltaText">--</div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><div class="ico">🌡️</div><h2>Θερμοκρασία Γόνου</h2></div>
+        <div class="card-body metric">
+          <div class="label">Τελευταία τιμή</div>
+          <div><span class="value" id="broodTemp">--</span><span class="unit">°C</span></div>
+          <div class="time" id="broodTime">--</div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><div class="ico" style="color:var(--orange)">🌡️</div><h2>Θερμοκρασία Περιβάλλοντος</h2></div>
+        <div class="card-body metric">
+          <div class="label">Τελευταία τιμή</div>
+          <div><span class="value" id="ambientTemp">--</span><span class="unit">°C</span></div>
+          <div class="time" id="ambientTime">--</div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><div class="ico">💧</div><h2>Υγρασία</h2></div>
+        <div class="card-body metric">
+          <div class="label">Τελευταία τιμή</div>
+          <div><span class="value" id="humidity">--</span><span class="unit">%</span></div>
+          <div class="time" id="humidityTime">--</div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><div class="ico" style="color:#BFA7FF">⌁</div><h2>Ατμοσφαιρική Πίεση</h2></div>
+        <div class="card-body metric">
+          <div class="label">Τελευταία τιμή</div>
+          <div><span class="value" id="pressure">--</span><span class="unit">hPa</span></div>
+          <div class="time" id="pressureTime">--</div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><div class="ico" style="color:var(--green)">🔋</div><h2>Μπαταρία</h2></div>
+        <div class="card-body metric">
+          <div class="label">Τελευταία τιμή</div>
+          <div><span class="value" id="batteryPercent">--</span><span class="unit">%</span></div>
+          <div class="battery-row"><span id="batteryVolt">-- V</span><div class="battery-bar"><div class="battery-fill" id="batteryFill"></div></div></div>
+          <div class="time" id="batteryTime">--</div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><div class="ico">📶</div><h2>Σήμα LTE</h2></div>
+        <div class="card-body metric">
+          <div id="signalBars" class="signal-wrap signal-mid">
+            <div class="signal-dot"></div>
+            <div class="bar b1"></div>
+            <div class="bar b2"></div>
+            <div class="bar b3"></div>
+            <div class="bar b4"></div>
+            <div class="bar b5"></div>
+          </div>
+          <div class="rssi-db"><span id="rssi">--</span> <span style="font-size:17px;color:var(--text);font-weight:650;">dBm</span></div>
+          <div class="rssi-quality" id="rssiText">--</div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><div class="ico">🌐</div><h2>Τύπος Δικτύου</h2></div>
+        <div class="card-body metric">
+          <div class="label">4G / 3G / 2G</div>
+          <div><span class="value" id="networkType">--</span></div>
+          <div class="time" id="networkTime">--</div>
+          <div class="hint">Θα εμφανιστεί μετά την πρώτη αποστολή v15.2.1</div>
+        </div>
+      </article>
+
+      <article class="card full">
+        <div class="card-head"><div class="ico" style="color:var(--blue)">📋</div><h2>Ημερήσιες Διαφορές Βάρους</h2></div>
+        <div class="card-body">
+          <div class="daily-row daily-head">
+            <div>Ημέρα</div><div style="text-align:right">Βάρος</div><div style="text-align:right">Διαφορά</div>
+          </div>
+          <div id="dailyList"></div>
+        </div>
+      </article>
+
+      <article class="card map-card">
+        <div class="card-head"><div class="ico">📍</div><h2>Τοποθεσία</h2></div>
+        <div class="card-body">
+          <div id="map"></div>
+          <div class="coords" id="coords">Δεν υπάρχει GPS fix</div>
+          <a class="map-link" id="mapLink" href="#" target="_blank" rel="noopener">Άνοιγμα σε Google Maps</a>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    const API_BASE = "https://industrial.api.ubidots.com/api/v1.6";
+    const DEFAULT_DEVICE = "melissi-zygaria";
+    const REFRESH_MS = 60000;
+    const FETCH_TIMEOUT_MS = 25000;
+    const HARD_RELOAD_AFTER_MS = 20 * 60 * 1000;
+    const WEIGHT_HISTORY_POINTS = 800;
+
+    // Αν το Android/HTML viewer δεν κρατάει localStorage, μπορείς προαιρετικά
+    // να βάλεις το token εδώ στο δικό σου ιδιωτικό αντίγραφο του αρχείου.
+    // Μην το ανεβάσεις δημόσια αν το συμπληρώσεις.
+    const EMBEDDED_UBIDOTS_TOKEN = "";
+    const EMBEDDED_DEVICE = "melissi-zygaria";
+
+    const TOKEN_KEYS = [
+      "beescale_ubidots_token_v5",
+      "beescale_ubidots_token",
+      "ubidots_token"
+    ];
+
+    const DEVICE_KEYS = [
+      "beescale_ubidots_device_v5",
+      "beescale_ubidots_device",
+      "ubidots_device"
+    ];
+
+    const vars = {
+      weight: "weight",
+      broodTemp: "brood_temp",
+      ambientTemp: "ambient_temp",
+      humidity: "humidity",
+      pressure: "pressure",
+      batteryV: "battery_v",
+      batteryP: "battery_p",
+      rssi: "rssi",
+      networkCode: "network_code",
+      position: "position"
+    };
+
+    let map, marker;
+    const $ = (id) => document.getElementById(id);
+
+    function fmt(value, decimals = 1) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return "--";
+      return n.toFixed(decimals);
+    }
+
+    function fmtTime(ts) {
+      if (!ts) return "--";
+      const d = new Date(ts);
+      if (Number.isNaN(d.getTime())) return "--";
+      return d.toLocaleString("el-GR", {
+        day: "2-digit", month: "2-digit", year: "numeric",
+        hour: "2-digit", minute: "2-digit"
+      });
+    }
+
+    function dateKey(ts) {
+      const d = new Date(ts);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function dateLabel(key) {
+      const [y, m, d] = key.split("-");
+      const date = new Date(Number(y), Number(m) - 1, Number(d));
+      return date.toLocaleDateString("el-GR", {
+        weekday: "short",
+        day: "2-digit",
+        month: "2-digit"
+      });
+    }
+
+    function deltaClass(delta) {
+      if (delta > 0.05) return "pos";
+      if (delta < -0.05) return "neg";
+      return "flat";
+    }
+
+    function signed(delta) {
+      if (!Number.isFinite(delta)) return "--";
+      return `${delta > 0 ? "+" : ""}${delta.toFixed(2)}`;
+    }
+
+    function setError(message) {
+      const box = $("errorBox");
+      if (!message) {
+        box.classList.remove("show");
+        box.textContent = "";
+        return;
+      }
+      box.textContent = message;
+      box.classList.add("show");
+    }
+
+    function storageGet(keys) {
+      for (const key of keys) {
+        try {
+          const value = localStorage.getItem(key);
+          if (value && value.trim()) return value.trim();
+        } catch (e) {}
+      }
+
+      for (const key of keys) {
+        try {
+          const value = sessionStorage.getItem(key);
+          if (value && value.trim()) return value.trim();
+        } catch (e) {}
+      }
+
+      return "";
+    }
+
+    function storageSet(keys, value) {
+      for (const key of keys) {
+        try { localStorage.setItem(key, value); } catch (e) {}
+        try { sessionStorage.setItem(key, value); } catch (e) {}
+      }
+    }
+
+    function storageRemove(keys) {
+      for (const key of keys) {
+        try { localStorage.removeItem(key); } catch (e) {}
+        try { sessionStorage.removeItem(key); } catch (e) {}
+      }
+    }
+
+    function getHashConfig() {
+      const raw = (location.hash || "").replace(/^#/, "");
+      const params = new URLSearchParams(raw);
+
+      return {
+        token: (params.get("token") || params.get("ubidots_token") || "").trim(),
+        device: (params.get("device") || params.get("label") || "").trim()
+      };
+    }
+
+    function getConfig() {
+      const hash = getHashConfig();
+
+      const token =
+        storageGet(TOKEN_KEYS) ||
+        hash.token ||
+        EMBEDDED_UBIDOTS_TOKEN.trim() ||
+        $("tokenInput")?.value?.trim() ||
+        "";
+
+      const device =
+        storageGet(DEVICE_KEYS) ||
+        hash.device ||
+        EMBEDDED_DEVICE.trim() ||
+        $("deviceInput")?.value?.trim() ||
+        DEFAULT_DEVICE;
+
+      return { token, device: device || DEFAULT_DEVICE };
+    }
+
+    function updateTokenStatus() {
+      const { token, device } = getConfig();
+      const tokenText = token ? `Token: αποθηκευμένο (${token.length} χαρακτήρες)` : "Token: λείπει";
+      const deviceText = `Device: ${device || DEFAULT_DEVICE}`;
+      const el = $("tokenStatus");
+      if (el) el.textContent = `${tokenText} / ${deviceText}`;
+    }
+
+    function initConfigUI() {
+      const { token, device } = getConfig();
+      $("tokenInput").value = token;
+      $("deviceInput").value = device || DEFAULT_DEVICE;
+      updateTokenStatus();
+
+      if (token) {
+        // Μεταφέρουμε παλιό token από προηγούμενη έκδοση/URL στα νέα keys.
+        storageSet(TOKEN_KEYS, token);
+        storageSet(DEVICE_KEYS, device || DEFAULT_DEVICE);
+      }
+    }
+
+    function saveConfig() {
+      const token = $("tokenInput").value.trim();
+      const device = $("deviceInput").value.trim() || DEFAULT_DEVICE;
+
+      if (!token) {
+        setError("Δεν έχεις βάλει Ubidots token.");
+        $("settingsBox").classList.add("open");
+        updateTokenStatus();
+        return;
+      }
+
+      storageSet(TOKEN_KEYS, token);
+      storageSet(DEVICE_KEYS, device);
+
+      $("settingsBox").classList.remove("open");
+      updateTokenStatus();
+      setError("");
+      loadData(true);
+    }
+
+    function clearConfig() {
+      storageRemove(TOKEN_KEYS);
+      storageRemove(DEVICE_KEYS);
+      $("tokenInput").value = "";
+      $("deviceInput").value = DEFAULT_DEVICE;
+      $("settingsBox").classList.add("open");
+      updateTokenStatus();
+      setError("Βάλε ξανά το Ubidots token.");
+    }
+
+
+    let refreshTimer = null;
+    let loadInProgress = false;
+    let lastSuccessfulRefreshMs = 0;
+
+    function addNoCache(url) {
+      const sep = url.includes("?") ? "&" : "?";
+      return `${url}${sep}_=${Date.now()}`;
+    }
+
+    async function fetchJsonWithTimeout(url, token) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+      try {
+        const res = await fetch(addNoCache(url), {
+          headers: {
+            "X-Auth-Token": token
+          },
+          signal: controller.signal
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        return await res.json();
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    function scheduleNextRefresh(delayMs = REFRESH_MS) {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => loadData(false), delayMs);
+    }
+
+    function checkHardReload() {
+      if (!lastSuccessfulRefreshMs) return;
+      const age = Date.now() - lastSuccessfulRefreshMs;
+
+      // Σε Android/Browser μερικές φορές το local αρχείο ή τα timers "παγώνουν".
+      // Αν έχει μείνει πολλή ώρα χωρίς επιτυχημένη ανανέωση, κάνουμε πλήρες reload.
+      if (age > HARD_RELOAD_AFTER_MS) {
+        location.reload();
+      }
+    }
+
+    async function getLast(device, variable, token) {
+      const url = `${API_BASE}/devices/${encodeURIComponent(device)}/${encodeURIComponent(variable)}/values/?page_size=1`;
+      try {
+        const data = await fetchJsonWithTimeout(url, token);
+        return (data.results && data.results[0]) || null;
+      } catch (err) {
+        throw new Error(`${variable}: ${err.name === "AbortError" ? "timeout" : err.message}`);
+      }
+    }
+
+    async function getValues(device, variable, token, count) {
+      const url = `${API_BASE}/devices/${encodeURIComponent(device)}/${encodeURIComponent(variable)}/values/?page_size=${count}`;
+      try {
+        const data = await fetchJsonWithTimeout(url, token);
+        return data.results || [];
+      } catch (err) {
+        throw new Error(`${variable}: ${err.name === "AbortError" ? "timeout" : err.message}`);
+      }
+    }
+
+    function buildDailyWeights(values) {
+      const byDay = new Map();
+
+      // Το Ubidots συνήθως επιστρέφει τις τιμές από νεότερη προς παλαιότερη.
+      // Η πρώτη τιμή κάθε ημέρας είναι το τελευταίο βάρος εκείνης της ημέρας.
+      for (const item of values) {
+        if (!item || item.timestamp === undefined) continue;
+        const key = dateKey(item.timestamp);
+        if (!byDay.has(key)) {
+          byDay.set(key, {
+            date: key,
+            value: Number(item.value),
+            timestamp: item.timestamp
+          });
+        }
+      }
+
+      return [...byDay.values()].sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    function updateDailyDifference(weightValues) {
+      const daysAsc = buildDailyWeights(weightValues);
+      const daysDesc = [...daysAsc].reverse();
+
+      const latest = daysAsc[daysAsc.length - 1];
+      const previous = daysAsc[daysAsc.length - 2];
+
+      if (latest && previous) {
+        const delta = latest.value - previous.value;
+        $("dailyDelta").textContent = signed(delta);
+        $("dailyDelta").className = "value " + deltaClass(delta);
+        $("dailyDeltaText").textContent = `${dateLabel(latest.date)} σε σχέση με ${dateLabel(previous.date)}`;
+      } else {
+        $("dailyDelta").textContent = "--";
+        $("dailyDelta").className = "value";
+        $("dailyDeltaText").textContent = "Χρειάζονται δεδομένα από 2 διαφορετικές ημέρες";
+      }
+
+      const list = $("dailyList");
+      list.innerHTML = "";
+
+      if (daysAsc.length < 2) {
+        list.innerHTML = `<div class="daily-row"><div class="daily-date">Δεν υπάρχουν αρκετές ημέρες</div><div></div><div></div></div>`;
+        return;
+      }
+
+      const rows = daysDesc.slice(0, 10).map(day => {
+        const idx = daysAsc.findIndex(d => d.date === day.date);
+        const prev = idx > 0 ? daysAsc[idx - 1] : null;
+        const delta = prev ? day.value - prev.value : NaN;
+        return `
+          <div class="daily-row">
+            <div class="daily-date">${dateLabel(day.date)}</div>
+            <div class="daily-weight">${fmt(day.value, 2)} kg</div>
+            <div class="daily-delta ${deltaClass(delta)}">${signed(delta)} kg</div>
+          </div>
+        `;
+      }).join("");
+
+      list.innerHTML = rows;
+    }
+
+    function updateGauge(weight) {
+      const w = Number(weight);
+      const max = 100;
+      const pct = Number.isFinite(w) ? Math.max(0, Math.min(100, (w / max) * 100)) : 0;
+      $("gaugeArc").setAttribute("stroke-dasharray", `${pct} ${100 - pct}`);
+    }
+
+    function metricColor(el, value, type) {
+      const v = Number(value);
+      let color = "var(--green)";
+      if (type === "battery") {
+        if (v < 30) color = "var(--red)";
+        else if (v < 60) color = "var(--yellow)";
+      }
+      if (type === "rssi") {
+        if (v <= -100) color = "var(--red)";
+        else if (v <= -85) color = "var(--yellow)";
+      }
+      el.style.color = color;
+    }
+
+    function setSignalBars(rssiValue) {
+      const r = Number(rssiValue);
+      const wrap = $("signalBars");
+      const bars = wrap.querySelectorAll(".bar");
+      let level = 0;
+      let quality = "--";
+      let cls = "signal-bad";
+
+      if (Number.isFinite(r)) {
+        if (r <= -110) { level = 1; quality = "Πολύ αδύναμο"; cls = "signal-bad"; }
+        else if (r <= -100) { level = 2; quality = "Αδύναμο σήμα"; cls = "signal-bad"; }
+        else if (r <= -90) { level = 3; quality = "Μέτριο σήμα"; cls = "signal-mid"; }
+        else if (r <= -80) { level = 4; quality = "Καλό σήμα"; cls = "signal-good"; }
+        else { level = 5; quality = "Πολύ καλό σήμα"; cls = "signal-good"; }
+      }
+
+      wrap.className = "signal-wrap " + cls;
+      bars.forEach((bar, i) => {
+        if (i < level) bar.classList.add("active");
+        else bar.classList.remove("active");
+      });
+
+      $("rssiText").textContent = quality;
+    }
+
+    function initMap() {
+      if (map) return;
+      map = L.map("map", {
+        zoomControl: false,
+        attributionControl: false
+      }).setView([39.0, 22.0], 6);
+
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        maxZoom: 19
+      }).addTo(map);
+    }
+
+    function networkLabel(item) {
+      if (!item) return "Δεν υπάρχει ακόμα";
+
+      const ctx = item.context || {};
+      if (ctx.type) return String(ctx.type);
+
+      const code = Math.round(Number(item.value));
+      if (code === 4) return "4G LTE";
+      if (code === 3) return "3G";
+      if (code === 2) return "2G";
+      if (code === 0) return "UNKNOWN";
+
+      return String(item.value ?? "--");
+    }
+
+    function setMap(lat, lng) {
+      initMap();
+      const pos = [lat, lng];
+      map.setView(pos, 13);
+
+      if (!marker) marker = L.marker(pos).addTo(map);
+      else marker.setLatLng(pos);
+
+      $("coords").textContent = `${lat.toFixed(6)}° N, ${lng.toFixed(6)}° E`;
+      $("mapLink").href = `https://maps.google.com/?q=${lat},${lng}`;
+      setTimeout(() => map.invalidateSize(), 250);
+    }
+
+    async function loadData(force = false) {
+      if (loadInProgress && !force) return;
+      loadInProgress = true;
+      checkHardReload();
+
+      const { token, device } = getConfig();
+
+      if (!$("settingsBox").classList.contains("open")) {
+        $("tokenInput").value = token;
+        $("deviceInput").value = device;
+      }
+      updateTokenStatus();
+
+      if (!token) {
+        $("settingsBox").classList.add("open");
+        $("onlineText").textContent = "Χρειάζεται token";
+        $("onlineDot").style.background = "var(--red)";
+        setError("Πάτα το γρανάζι και βάλε το Ubidots token. Αν το Android δεν το κρατάει, χρησιμοποίησε τη v5 και άνοιγέ τη από σταθερό link ή βάλε το token στο ιδιωτικό HTML αρχείο.");
+        loadInProgress = false;
+        scheduleNextRefresh();
+        return;
+      }
+
+      setError("");
+      $("onlineText").textContent = "Ανανέωση...";
+      $("onlineDot").style.background = "var(--yellow)";
+
+      try {
+        const [
+          weightValues, brood, ambient, hum, press, battV, battP, rssi, networkCode, position
+        ] = await Promise.all([
+          getValues(device, vars.weight, token, WEIGHT_HISTORY_POINTS),
+          getLast(device, vars.broodTemp, token),
+          getLast(device, vars.ambientTemp, token),
+          getLast(device, vars.humidity, token),
+          getLast(device, vars.pressure, token),
+          getLast(device, vars.batteryV, token),
+          getLast(device, vars.batteryP, token),
+          getLast(device, vars.rssi, token),
+          // Το network_code υπάρχει μόνο αφού η v15.2.1 στείλει τουλάχιστον μία φορά.
+          // Αν λείπει ακόμα από Ubidots, δεν σταματάμε όλο το dashboard.
+          getLast(device, vars.networkCode, token).catch(() => null),
+          getLast(device, vars.position, token).catch(() => null)
+        ]);
+
+        const weight = weightValues[0] || null;
+        const w = weight?.value;
+        $("weightBig").textContent = fmt(w, 2);
+        $("weightGauge").textContent = fmt(w, 2);
+        $("weightTime").textContent = fmtTime(weight?.timestamp);
+        updateGauge(w);
+        updateDailyDifference(weightValues);
+
+        $("broodTemp").textContent = fmt(brood?.value, 1);
+        $("broodTime").textContent = fmtTime(brood?.timestamp);
+
+        $("ambientTemp").textContent = fmt(ambient?.value, 1);
+        $("ambientTime").textContent = fmtTime(ambient?.timestamp);
+
+        $("humidity").textContent = fmt(hum?.value, 1);
+        $("humidityTime").textContent = fmtTime(hum?.timestamp);
+
+        $("pressure").textContent = fmt(press?.value, 1);
+        $("pressureTime").textContent = fmtTime(press?.timestamp);
+
+        $("batteryPercent").textContent = fmt(battP?.value, 0);
+        $("batteryVolt").textContent = `${fmt(battV?.value, 2)} V`;
+        $("batteryTime").textContent = fmtTime(battP?.timestamp || battV?.timestamp);
+        const bp = Math.max(0, Math.min(100, Number(battP?.value) || 0));
+        $("batteryFill").style.width = `${bp}%`;
+        metricColor($("batteryPercent"), bp, "battery");
+        $("batteryFill").style.background = bp < 30 ? "var(--red)" : bp < 60 ? "var(--yellow)" : "var(--green)";
+
+        $("rssi").textContent = fmt(rssi?.value, 0);
+        metricColor($("rssi"), rssi?.value, "rssi");
+        setSignalBars(rssi?.value);
+
+        $("networkType").textContent = networkLabel(networkCode);
+        $("networkTime").textContent = fmtTime(networkCode?.timestamp);
+
+        const ctx = position?.context || {};
+        const lat = Number(ctx.lat ?? ctx.latitude);
+        const lng = Number(ctx.lng ?? ctx.lon ?? ctx.longitude);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          setMap(lat, lng);
+        }
+
+        const latestTs = [weight, brood, ambient, hum, press, battV, battP, rssi, networkCode, position]
+          .map(x => x?.timestamp || 0)
+          .reduce((a, b) => Math.max(a, b), 0);
+
+        $("lastUpdate").textContent = fmtTime(latestTs);
+        $("onlineText").textContent = "Online";
+        $("onlineDot").style.background = "var(--green)";
+        lastSuccessfulRefreshMs = Date.now();
+      } catch (err) {
+        console.error(err);
+        $("onlineText").textContent = "Σφάλμα";
+        $("onlineDot").style.background = "var(--red)";
+        let detail = err.message || String(err);
+        if (detail.includes("Failed to fetch")) {
+          detail = "Failed to fetch. Συνήθως είναι προσωρινό μπλοκάρισμα/CORS/cache του browser ή κόλλημα internet. Κάνε ανανέωση ή άνοιξε το v2 αρχείο σε Chrome.";
+        }
+        setError("Δεν μπόρεσα να διαβάσω το Ubidots. Έλεγξε token, device label και internet. Λεπτομέρεια: " + detail);
+      } finally {
+        loadInProgress = false;
+        scheduleNextRefresh();
+      }
+    }
+
+    $("settingsBtn").addEventListener("click", () => $("settingsBox").classList.toggle("open"));
+    $("saveBtn").addEventListener("click", saveConfig);
+    $("clearBtn").addEventListener("click", clearConfig);
+    $("refreshBtn").addEventListener("click", () => loadData(true));
+    $("tokenInput").addEventListener("input", updateTokenStatus);
+    $("deviceInput").addEventListener("input", updateTokenStatus);
+
+    window.addEventListener("focus", () => loadData(true));
+    window.addEventListener("online", () => loadData(true));
+    window.addEventListener("pageshow", () => loadData(true));
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) loadData(true);
+    });
+
+    initConfigUI();
+    loadData(true);
+    scheduleNextRefresh();
+  </script>
+</body>
+</html>
