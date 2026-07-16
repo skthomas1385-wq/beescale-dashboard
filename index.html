@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#050B12" />
-  <title>Μελισσοζυγαριά Dashboard v5.1.1 Network Optional</title>
+  <title>Μελισσοζυγαριά Dashboard v5 Token Fix</title>
 
   <link rel="preconnect" href="https://industrial.api.ubidots.com" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -501,13 +501,6 @@
       .bar { width: 15px; }
     }
   </style>
-
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#050B12">
-
 </head>
 
 <body>
@@ -648,7 +641,6 @@
           <div class="label">4G / 3G / 2G</div>
           <div><span class="value" id="networkType">--</span></div>
           <div class="time" id="networkTime">--</div>
-          <div class="hint">Θα εμφανιστεί μετά την πρώτη αποστολή v15.2.1</div>
         </div>
       </article>
 
@@ -1073,7 +1065,7 @@
     }
 
     function networkLabel(item) {
-      if (!item) return "Δεν υπάρχει ακόμα";
+      if (!item) return "--";
 
       const ctx = item.context || {};
       if (ctx.type) return String(ctx.type);
@@ -1139,9 +1131,7 @@
           getLast(device, vars.batteryV, token),
           getLast(device, vars.batteryP, token),
           getLast(device, vars.rssi, token),
-          // Το network_code υπάρχει μόνο αφού η v15.2.1 στείλει τουλάχιστον μία φορά.
-          // Αν λείπει ακόμα από Ubidots, δεν σταματάμε όλο το dashboard.
-          getLast(device, vars.networkCode, token).catch(() => null),
+          getLast(device, vars.networkCode, token),
           getLast(device, vars.position, token).catch(() => null)
         ]);
 
