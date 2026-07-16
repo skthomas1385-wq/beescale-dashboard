@@ -1,13 +1,16 @@
-BeeScale GitHub Pages με Icon
+BeeScale Dashboard v5.2 Clean
 
-Ανέβασε ΟΛΑ τα αρχεία στο repository root:
-- index.html
-- favicon.svg
-- icon-192.png
-- icon-512.png
-- apple-touch-icon.png
-- favicon.png
-- manifest.webmanifest
+Ανέβασε ΟΛΑ τα αρχεία στο root του GitHub repository.
 
-Μετά περίμενε 2-10 λεπτά για να ανανεώσει το GitHub Pages.
-Στο Hermit, αν δεν αλλάξει το icon, διέγραψε το παλιό Lite App και ξαναδημιούργησέ το από το ίδιο GitHub Pages link.
+Αλλαγές:
+1. Δεν περιέχει Ubidots token. Η γραμμή EMBEDDED_UBIDOTS_TOKEN είναι κενή.
+2. Ο χάρτης είναι πλέον κανονικός φωτεινός OpenStreetMap, όχι dark.
+3. Έφυγε η σημείωση κάτω από τον τύπο δικτύου.
+4. Μικραίνει λίγο το ύψος της κάρτας Βάρος.
+5. Αφαιρέθηκε το κείμενο "Τελευταία τιμή" πάνω από τις τιμές.
+
+Μετά το ανέβασμα:
+- Commit changes
+- Περίμενε 2-10 λεπτά
+- Άνοιξε το GitHub Pages link
+- Πάτα γρανάζι και βάλε το Ubidots token τοπικά στο κινητό/Hermit.

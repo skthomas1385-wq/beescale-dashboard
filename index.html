@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#050B12" />
-  <title>Μελισσοζυγαριά Dashboard v5 Token Fix</title>
+  <title>Μελισσοζυγαριά Dashboard v5.2 Clean</title>
 
   <link rel="preconnect" href="https://industrial.api.ubidots.com" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -500,7 +500,34 @@
       .signal-wrap { height: 58px; }
       .bar { width: 15px; }
     }
+  
+    /* BeeScale v5.2 clean compact changes */
+    .card.big {
+      min-height: 330px !important;
+    }
+
+    .card.big .split {
+      gap: 10px !important;
+    }
+
+    .gauge {
+      transform: scale(.86);
+      transform-origin: center top;
+      margin-bottom: -28px;
+    }
+
+    .card-body.metric .label {
+      display: none;
+    }
+
   </style>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#050B12">
+
 </head>
 
 <body>
@@ -576,7 +603,7 @@
       <article class="card">
         <div class="card-head"><div class="ico">🌡️</div><h2>Θερμοκρασία Γόνου</h2></div>
         <div class="card-body metric">
-          <div class="label">Τελευταία τιμή</div>
+          <div class="label"></div>
           <div><span class="value" id="broodTemp">--</span><span class="unit">°C</span></div>
           <div class="time" id="broodTime">--</div>
         </div>
@@ -585,7 +612,7 @@
       <article class="card">
         <div class="card-head"><div class="ico" style="color:var(--orange)">🌡️</div><h2>Θερμοκρασία Περιβάλλοντος</h2></div>
         <div class="card-body metric">
-          <div class="label">Τελευταία τιμή</div>
+          <div class="label"></div>
           <div><span class="value" id="ambientTemp">--</span><span class="unit">°C</span></div>
           <div class="time" id="ambientTime">--</div>
         </div>
@@ -594,7 +621,7 @@
       <article class="card">
         <div class="card-head"><div class="ico">💧</div><h2>Υγρασία</h2></div>
         <div class="card-body metric">
-          <div class="label">Τελευταία τιμή</div>
+          <div class="label"></div>
           <div><span class="value" id="humidity">--</span><span class="unit">%</span></div>
           <div class="time" id="humidityTime">--</div>
         </div>
@@ -603,7 +630,7 @@
       <article class="card">
         <div class="card-head"><div class="ico" style="color:#BFA7FF">⌁</div><h2>Ατμοσφαιρική Πίεση</h2></div>
         <div class="card-body metric">
-          <div class="label">Τελευταία τιμή</div>
+          <div class="label"></div>
           <div><span class="value" id="pressure">--</span><span class="unit">hPa</span></div>
           <div class="time" id="pressureTime">--</div>
         </div>
@@ -612,7 +639,7 @@
       <article class="card">
         <div class="card-head"><div class="ico" style="color:var(--green)">🔋</div><h2>Μπαταρία</h2></div>
         <div class="card-body metric">
-          <div class="label">Τελευταία τιμή</div>
+          <div class="label"></div>
           <div><span class="value" id="batteryPercent">--</span><span class="unit">%</span></div>
           <div class="battery-row"><span id="batteryVolt">-- V</span><div class="battery-bar"><div class="battery-fill" id="batteryFill"></div></div></div>
           <div class="time" id="batteryTime">--</div>
@@ -1059,13 +1086,14 @@
         attributionControl: false
       }).setView([39.0, 22.0], 6);
 
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-        maxZoom: 19
-      }).addTo(map);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
     }
 
     function networkLabel(item) {
-      if (!item) return "--";
+      if (!item) return "Δεν υπάρχει ακόμα";
 
       const ctx = item.context || {};
       if (ctx.type) return String(ctx.type);
@@ -1131,7 +1159,9 @@
           getLast(device, vars.batteryV, token),
           getLast(device, vars.batteryP, token),
           getLast(device, vars.rssi, token),
-          getLast(device, vars.networkCode, token),
+          // Το network_code υπάρχει μόνο αφού η v15.2.1 στείλει τουλάχιστον μία φορά.
+          // Αν λείπει ακόμα από Ubidots, δεν σταματάμε όλο το dashboard.
+          getLast(device, vars.networkCode, token).catch(() => null),
           getLast(device, vars.position, token).catch(() => null)
         ]);
 
