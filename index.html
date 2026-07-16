@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#050B12" />
-  <title>Μελισσοζυγαριά Dashboard v5.2 Clean</title>
+  <title>Μελισσοζυγαριά Dashboard v5.3 Compact Weight</title>
 
   <link rel="preconnect" href="https://industrial.api.ubidots.com" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -500,24 +500,58 @@
       .signal-wrap { height: 58px; }
       .bar { width: 15px; }
     }
-  
-    /* BeeScale v5.2 clean compact changes */
+
+    /* BeeScale v5.3: πραγματικά μικρότερο πλακάκι βάρους */
     .card.big {
-      min-height: 330px !important;
+      min-height: 0 !important;
+      height: auto !important;
+      padding-bottom: 16px !important;
     }
 
     .card.big .split {
-      gap: 10px !important;
+      min-height: 145px !important;
+      height: 145px !important;
+      align-items: center !important;
+      gap: 8px !important;
     }
 
-    .gauge {
-      transform: scale(.86);
-      transform-origin: center top;
-      margin-bottom: -28px;
+    .card.big .gauge {
+      width: 150px !important;
+      max-width: 150px !important;
+      height: 118px !important;
+      transform: none !important;
+      margin: 0 !important;
+    }
+
+    .card.big .gauge svg {
+      width: 150px !important;
+      height: 95px !important;
+      display: block !important;
+    }
+
+    .card.big .gauge .gauge-center,
+    .card.big .gauge-center {
+      transform: scale(.82) !important;
+      transform-origin: center !important;
+    }
+
+    .card.big .value.big,
+    .card.big #weightBig {
+      font-size: clamp(34px, 10vw, 48px) !important;
+      line-height: 1 !important;
+    }
+
+    .card.big .unit {
+      font-size: 24px !important;
+    }
+
+    .card.big .hint,
+    .card.big .time {
+      margin-top: 4px !important;
     }
 
     .card-body.metric .label {
-      display: none;
+      display: none !important;
     }
 
   </style>
