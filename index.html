@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#050B12" />
-  <title>Μελισσοζυγαριά Dashboard v5.4 Reset History</title>
+  <title>Μελισσοζυγαριά Dashboard v5.5 Popup History</title>
 
   <link rel="preconnect" href="https://industrial.api.ubidots.com" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -501,7 +501,7 @@
       .bar { width: 15px; }
     }
 
-    /* BeeScale v5.4: πραγματικά μικρότερο πλακάκι βάρους */
+    /* BeeScale v5.5: πραγματικά μικρότερο πλακάκι βάρους */
     .card.big {
       min-height: 0 !important;
       height: auto !important;
@@ -555,7 +555,7 @@
     }
 
   
-    /* BeeScale v5.4 reset history controls */
+    /* BeeScale v5.5 reset history controls */
     .settings .actions {
       flex-wrap: wrap;
     }
@@ -563,6 +563,134 @@
     .settings .actions button {
       flex: 1 1 auto;
       min-width: 120px;
+    }
+
+  
+    /* BeeScale v5.5 popup history */
+    .clickable-card {
+      position: relative;
+      cursor: pointer;
+      -webkit-tap-highlight-color: rgba(43,124,255,.18);
+    }
+
+    .clickable-card:active {
+      transform: scale(.995);
+    }
+
+    .clickable-card .card-head::after {
+      content: "ιστορικό";
+      margin-left: auto;
+      font-size: 10px;
+      color: var(--muted);
+      border: 1px solid rgba(147,164,184,.25);
+      border-radius: 999px;
+      padding: 3px 7px;
+      background: rgba(255,255,255,.035);
+    }
+
+    .history-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      background: rgba(0,0,0,.58);
+      backdrop-filter: blur(7px);
+      padding: 16px;
+    }
+
+    .history-modal.show {
+      display: flex;
+    }
+
+    .history-modal-card {
+      width: min(720px, 100%);
+      max-height: 86vh;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.055), transparent 45%),
+        #0B121C;
+      border: 1px solid rgba(147,164,184,.25);
+      border-radius: 22px;
+      box-shadow: 0 20px 70px rgba(0,0,0,.55);
+      overflow: hidden;
+    }
+
+    .history-modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid rgba(34,48,68,.85);
+    }
+
+    .history-modal-head h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .history-subtitle {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 5px;
+    }
+
+    .history-close {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid rgba(147,164,184,.25);
+      background: rgba(255,255,255,.035);
+      color: var(--text);
+      font-size: 28px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .history-content {
+      max-height: calc(86vh - 86px);
+      overflow: auto;
+      padding: 8px 16px 16px;
+    }
+
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .history-table th {
+      position: sticky;
+      top: 0;
+      background: #0B121C;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      font-size: 11px;
+      text-align: left;
+      padding: 10px 4px;
+      border-bottom: 1px solid rgba(34,48,68,.95);
+      z-index: 1;
+    }
+
+    .history-table td {
+      padding: 11px 4px;
+      border-bottom: 1px solid rgba(34,48,68,.75);
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    .history-table th:not(:first-child),
+    .history-table td:not(:first-child) {
+      text-align: right;
+    }
+
+    .history-empty {
+      padding: 18px 4px;
+      color: var(--muted);
+      font-size: 14px;
     }
 
   </style>
@@ -721,18 +849,7 @@
           <div class="time" id="networkTime">--</div>
         </div>
       </article>
-
-      <article class="card full">
-        <div class="card-head"><div class="ico" style="color:var(--blue)">📋</div><h2>Ημερήσιες Διαφορές Βάρους</h2></div>
-        <div class="card-body">
-          <div class="daily-row daily-head">
-            <div>Ημέρα</div><div style="text-align:right">Βάρος</div><div style="text-align:right">Διαφορά</div>
-          </div>
-          <div id="dailyList"></div>
-        </div>
-      </article>
-
-      <article class="card map-card">
+<article class="card map-card">
         <div class="card-head"><div class="ico">📍</div><h2>Τοποθεσία</h2></div>
         <div class="card-body">
           <div id="map"></div>
@@ -743,6 +860,20 @@
     </section>
   </main>
 
+
+  <div id="historyModal" class="history-modal" aria-hidden="true">
+    <div class="history-modal-card" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+      <div class="history-modal-head">
+        <div>
+          <h2 id="historyTitle">Ιστορικό</h2>
+          <div id="historySubtitle" class="history-subtitle">Προηγούμενες τιμές</div>
+        </div>
+        <button id="historyClose" class="history-close" type="button" aria-label="Κλείσιμο">×</button>
+      </div>
+      <div id="historyContent" class="history-content"></div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
@@ -752,6 +883,7 @@
     const FETCH_TIMEOUT_MS = 25000;
     const HARD_RELOAD_AFTER_MS = 20 * 60 * 1000;
     const WEIGHT_HISTORY_POINTS = 800;
+    const METRIC_HISTORY_POINTS = 20;
 
     // Αν το Android/HTML viewer δεν κρατάει localStorage, μπορείς προαιρετικά
     // να βάλεις το token εδώ στο δικό σου ιδιωτικό αντίγραφο του αρχείου.
@@ -790,6 +922,7 @@
     };
 
     let map, marker;
+    let historyStore = { daily: { title: 'Ημερήσιες Διαφορές Βάρους', subtitle: '', headers: [], rows: [] }, metrics: {} };
     const $ = (id) => document.getElementById(id);
 
     function fmt(value, decimals = 1) {
@@ -1094,7 +1227,33 @@
         : weightValues;
 
       const daysAsc = buildDailyWeights(filteredValues);
-      const daysDesc = [...daysAsc].reverse();
+
+      const dailyRowsAsc = daysAsc.map((day, idx) => {
+        const prev = idx > 0 ? daysAsc[idx - 1] : null;
+        const delta = prev ? day.value - prev.value : NaN;
+        return {
+          date: day.date,
+          value: day.value,
+          delta,
+          previousDate: prev?.date || "",
+          timestamp: day.timestamp
+        };
+      });
+
+      const dailyRowsDesc = [...dailyRowsAsc].reverse();
+
+      historyStore.daily = {
+        title: "Ημερήσιες Διαφορές Βάρους",
+        subtitle: start ? `Από ${start} και μετά` : "Τελευταίες ημέρες",
+        headers: ["Ημέρα", "Βάρος", "Διαφορά"],
+        rows: dailyRowsDesc.slice(0, 30).map(row => [
+          dateLabel(row.date),
+          `${fmt(row.value, 2)} kg`,
+          Number.isFinite(row.delta)
+            ? `<span class="${deltaClass(row.delta)}">${signed(row.delta)} kg</span>`
+            : `<span class="flat">-- kg</span>`
+        ])
+      };
 
       const latest = daysAsc[daysAsc.length - 1];
       const previous = daysAsc[daysAsc.length - 2];
@@ -1107,34 +1266,32 @@
       } else {
         $("dailyDelta").textContent = "--";
         $("dailyDelta").className = "value";
-        $("dailyDeltaText").textContent = "Χρειάζονται δεδομένα από 2 διαφορετικές ημέρες";
+        $("dailyDeltaText").textContent = start
+          ? "Δεν υπάρχουν αρκετές ημέρες μετά το reset"
+          : "Χρειάζονται δεδομένα από 2 διαφορετικές ημέρες";
       }
 
       const list = $("dailyList");
-      list.innerHTML = "";
+      if (list) {
+        list.innerHTML = "";
+        if (daysAsc.length < 2) {
+          const msg = getHistoryStart()
+            ? "Δεν υπάρχουν αρκετές ημέρες μετά το reset"
+            : "Δεν υπάρχουν αρκετές ημέρες";
+          list.innerHTML = `<div class="daily-row"><div class="daily-date">${msg}</div><div></div><div></div></div>`;
+          return;
+        }
 
-      if (daysAsc.length < 2) {
-        const msg = getHistoryStart()
-          ? "Δεν υπάρχουν αρκετές ημέρες μετά το reset"
-          : "Δεν υπάρχουν αρκετές ημέρες";
-        list.innerHTML = `<div class="daily-row"><div class="daily-date">${msg}</div><div></div><div></div></div>`;
-        return;
-      }
-
-      const rows = daysDesc.slice(0, 10).map(day => {
-        const idx = daysAsc.findIndex(d => d.date === day.date);
-        const prev = idx > 0 ? daysAsc[idx - 1] : null;
-        const delta = prev ? day.value - prev.value : NaN;
-        return `
+        const rows = dailyRowsDesc.slice(0, 10).map(row => `
           <div class="daily-row">
-            <div class="daily-date">${dateLabel(day.date)}</div>
-            <div class="daily-weight">${fmt(day.value, 2)} kg</div>
-            <div class="daily-delta ${deltaClass(delta)}">${signed(delta)} kg</div>
+            <div class="daily-date">${dateLabel(row.date)}</div>
+            <div class="daily-weight">${fmt(row.value, 2)} kg</div>
+            <div class="daily-delta ${deltaClass(row.delta)}">${signed(row.delta)} kg</div>
           </div>
-        `;
-      }).join("");
+        `).join("");
 
-      list.innerHTML = rows;
+        list.innerHTML = rows;
+      }
     }
 
     function updateGauge(weight) {
@@ -1224,6 +1381,110 @@
       setTimeout(() => map.invalidateSize(), 250);
     }
 
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderHistoryTable(data) {
+      const rows = data?.rows || [];
+      const headers = data?.headers || ["Ώρα", "Τιμή"];
+      if (!rows.length) {
+        return `<div class="history-empty">Δεν υπάρχουν προηγούμενες τιμές ακόμη.</div>`;
+      }
+
+      return `
+        <table class="history-table">
+          <thead>
+            <tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr>
+          </thead>
+          <tbody>
+            ${rows.map(row => `
+              <tr>${row.map(cell => `<td>${String(cell ?? "--")}</td>`).join("")}</tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function openHistory(key) {
+      const data = key === "daily" ? historyStore.daily : historyStore.metrics[key];
+      $("historyTitle").textContent = data?.title || "Ιστορικό";
+      $("historySubtitle").textContent = data?.subtitle || "Προηγούμενες τιμές";
+      $("historyContent").innerHTML = renderHistoryTable(data);
+      $("historyModal").classList.add("show");
+      $("historyModal").setAttribute("aria-hidden", "false");
+    }
+
+    function closeHistory() {
+      $("historyModal").classList.remove("show");
+      $("historyModal").setAttribute("aria-hidden", "true");
+    }
+
+    function setupHistoryCards() {
+      const bindings = [
+        ["weightBig", "weight"],
+        ["dailyDelta", "daily"],
+        ["broodTemp", "brood"],
+        ["ambientTemp", "ambient"],
+        ["humidity", "humidity"],
+        ["pressure", "pressure"],
+        ["batteryPercent", "battery"],
+        ["rssi", "rssi"],
+        ["networkType", "network"]
+      ];
+
+      bindings.forEach(([elementId, key]) => {
+        const el = $(elementId);
+        const card = el?.closest(".card");
+        if (!card || card.dataset.historyReady === "1") return;
+        card.classList.add("clickable-card");
+        card.dataset.historyReady = "1";
+        card.addEventListener("click", () => openHistory(key));
+      });
+    }
+
+    function setSimpleHistory(key, title, values, unit, decimals = 1, formatter = null, filterByHistoryStart = false) {
+      const start = getHistoryStart();
+      const filtered = (values || [])
+        .filter(item => item && item.timestamp !== undefined)
+        .filter(item => !filterByHistoryStart || !start || dateKey(item.timestamp) >= start)
+        .slice(0, METRIC_HISTORY_POINTS);
+
+      historyStore.metrics[key] = {
+        title,
+        subtitle: `Τελευταίες ${filtered.length} τιμές`,
+        headers: ["Ώρα", "Τιμή"],
+        rows: filtered.map(item => [
+          fmtTime(item.timestamp),
+          formatter ? formatter(item) : `${fmt(item.value, decimals)}${unit ? " " + unit : ""}`
+        ])
+      };
+    }
+
+    function setBatteryHistory(percentValues, voltValues) {
+      const rows = (percentValues || []).slice(0, METRIC_HISTORY_POINTS).map((item, idx) => {
+        const v = (voltValues || [])[idx];
+        return [
+          fmtTime(item.timestamp),
+          `${fmt(item.value, 0)} %`,
+          v ? `${fmt(v.value, 2)} V` : "-- V"
+        ];
+      });
+
+      historyStore.metrics.battery = {
+        title: "Μπαταρία",
+        subtitle: `Τελευταίες ${rows.length} τιμές`,
+        headers: ["Ώρα", "Ποσοστό", "Τάση"],
+        rows
+      };
+    }
+
     async function loadData(force = false) {
       if (loadInProgress && !force) return;
       loadInProgress = true;
@@ -1241,7 +1502,7 @@
         $("settingsBox").classList.add("open");
         $("onlineText").textContent = "Χρειάζεται token";
         $("onlineDot").style.background = "var(--red)";
-        setError("Πάτα το γρανάζι και βάλε το Ubidots token. Αν το Android δεν το κρατάει, χρησιμοποίησε τη v5 και άνοιγέ τη από σταθερό link ή βάλε το token στο ιδιωτικό HTML αρχείο.");
+        setError("Πάτα το γρανάζι και βάλε το Ubidots token. Το token αποθηκεύεται τοπικά στο κινητό/Hermit, όχι στο GitHub.");
         loadInProgress = false;
         scheduleNextRefresh();
         return;
@@ -1253,23 +1514,39 @@
 
       try {
         const [
-          weightValues, brood, ambient, hum, press, battV, battP, rssi, networkCode, position
+          weightValues,
+          broodValues,
+          ambientValues,
+          humValues,
+          pressValues,
+          battVValues,
+          battPValues,
+          rssiValues,
+          networkValues,
+          position
         ] = await Promise.all([
           getValues(device, vars.weight, token, WEIGHT_HISTORY_POINTS),
-          getLast(device, vars.broodTemp, token),
-          getLast(device, vars.ambientTemp, token),
-          getLast(device, vars.humidity, token),
-          getLast(device, vars.pressure, token),
-          getLast(device, vars.batteryV, token),
-          getLast(device, vars.batteryP, token),
-          getLast(device, vars.rssi, token),
-          // Το network_code υπάρχει μόνο αφού η v15.2.1 στείλει τουλάχιστον μία φορά.
-          // Αν λείπει ακόμα από Ubidots, δεν σταματάμε όλο το dashboard.
-          getLast(device, vars.networkCode, token).catch(() => null),
+          getValues(device, vars.broodTemp, token, METRIC_HISTORY_POINTS),
+          getValues(device, vars.ambientTemp, token, METRIC_HISTORY_POINTS),
+          getValues(device, vars.humidity, token, METRIC_HISTORY_POINTS),
+          getValues(device, vars.pressure, token, METRIC_HISTORY_POINTS),
+          getValues(device, vars.batteryV, token, METRIC_HISTORY_POINTS),
+          getValues(device, vars.batteryP, token, METRIC_HISTORY_POINTS),
+          getValues(device, vars.rssi, token, METRIC_HISTORY_POINTS),
+          getValues(device, vars.networkCode, token, METRIC_HISTORY_POINTS).catch(() => []),
           getLast(device, vars.position, token).catch(() => null)
         ]);
 
         const weight = weightValues[0] || null;
+        const brood = broodValues[0] || null;
+        const ambient = ambientValues[0] || null;
+        const hum = humValues[0] || null;
+        const press = pressValues[0] || null;
+        const battV = battVValues[0] || null;
+        const battP = battPValues[0] || null;
+        const rssi = rssiValues[0] || null;
+        const networkCode = networkValues[0] || null;
+
         const w = weight?.value;
         $("weightBig").textContent = fmt(w, 2);
         $("weightGauge").textContent = fmt(w, 2);
@@ -1277,17 +1554,23 @@
         updateGauge(w);
         updateDailyDifference(weightValues);
 
+        setSimpleHistory("weight", "Βάρος Κυψέλης", weightValues, "kg", 2, null, true);
+
         $("broodTemp").textContent = fmt(brood?.value, 1);
         $("broodTime").textContent = fmtTime(brood?.timestamp);
+        setSimpleHistory("brood", "Θερμοκρασία Γόνου", broodValues, "°C", 1);
 
         $("ambientTemp").textContent = fmt(ambient?.value, 1);
         $("ambientTime").textContent = fmtTime(ambient?.timestamp);
+        setSimpleHistory("ambient", "Θερμοκρασία Περιβάλλοντος", ambientValues, "°C", 1);
 
         $("humidity").textContent = fmt(hum?.value, 1);
         $("humidityTime").textContent = fmtTime(hum?.timestamp);
+        setSimpleHistory("humidity", "Υγρασία", humValues, "%", 1);
 
         $("pressure").textContent = fmt(press?.value, 1);
         $("pressureTime").textContent = fmtTime(press?.timestamp);
+        setSimpleHistory("pressure", "Ατμοσφαιρική Πίεση", pressValues, "hPa", 1);
 
         $("batteryPercent").textContent = fmt(battP?.value, 0);
         $("batteryVolt").textContent = `${fmt(battV?.value, 2)} V`;
@@ -1296,13 +1579,16 @@
         $("batteryFill").style.width = `${bp}%`;
         metricColor($("batteryPercent"), bp, "battery");
         $("batteryFill").style.background = bp < 30 ? "var(--red)" : bp < 60 ? "var(--yellow)" : "var(--green)";
+        setBatteryHistory(battPValues, battVValues);
 
         $("rssi").textContent = fmt(rssi?.value, 0);
         metricColor($("rssi"), rssi?.value, "rssi");
         setSignalBars(rssi?.value);
+        setSimpleHistory("rssi", "Σήμα LTE", rssiValues, "dBm", 0);
 
         $("networkType").textContent = networkLabel(networkCode);
         $("networkTime").textContent = fmtTime(networkCode?.timestamp);
+        setSimpleHistory("network", "Τύπος Δικτύου", networkValues, "", 0, item => networkLabel(item));
 
         const ctx = position?.context || {};
         const lat = Number(ctx.lat ?? ctx.latitude);
@@ -1325,7 +1611,7 @@
         $("onlineDot").style.background = "var(--red)";
         let detail = err.message || String(err);
         if (detail.includes("Failed to fetch")) {
-          detail = "Failed to fetch. Συνήθως είναι προσωρινό μπλοκάρισμα/CORS/cache του browser ή κόλλημα internet. Κάνε ανανέωση ή άνοιξε το v2 αρχείο σε Chrome.";
+          detail = "Failed to fetch. Συνήθως είναι προσωρινό μπλοκάρισμα/CORS/cache του browser ή κόλλημα internet.";
         }
         setError("Δεν μπόρεσα να διαβάσω το Ubidots. Έλεγξε token, device label και internet. Λεπτομέρεια: " + detail);
       } finally {
@@ -1333,6 +1619,15 @@
         scheduleNextRefresh();
       }
     }
+
+    setupHistoryCards();
+    $("historyClose").addEventListener("click", closeHistory);
+    $("historyModal").addEventListener("click", (ev) => {
+      if (ev.target === $("historyModal")) closeHistory();
+    });
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape") closeHistory();
+    });
 
     $("settingsBtn").addEventListener("click", () => $("settingsBox").classList.toggle("open"));
     $("saveBtn").addEventListener("click", saveConfig);
