@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#050B12" />
-  <title>Μελισσοζυγαριά Dashboard v5.5 Popup History</title>
+  <title>Μελισσοζυγαριά Dashboard v5.5.1 Popup History</title>
 
   <link rel="preconnect" href="https://industrial.api.ubidots.com" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -501,7 +501,7 @@
       .bar { width: 15px; }
     }
 
-    /* BeeScale v5.5: πραγματικά μικρότερο πλακάκι βάρους */
+    /* BeeScale v5.5.1: πραγματικά μικρότερο πλακάκι βάρους */
     .card.big {
       min-height: 0 !important;
       height: auto !important;
@@ -555,7 +555,7 @@
     }
 
   
-    /* BeeScale v5.5 reset history controls */
+    /* BeeScale v5.5.1 reset history controls */
     .settings .actions {
       flex-wrap: wrap;
     }
@@ -566,7 +566,7 @@
     }
 
   
-    /* BeeScale v5.5 popup history */
+    /* BeeScale v5.5.1 popup history */
     .clickable-card {
       position: relative;
       cursor: pointer;
@@ -693,6 +693,21 @@
       font-size: 14px;
     }
 
+  
+    /* BeeScale v5.5.1 visible version/cache helper */
+    .version-badge {
+      display: inline-flex;
+      margin-top: 3px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(147,164,184,.25);
+      color: var(--muted);
+      background: rgba(255,255,255,.035);
+      font-size: 10px;
+      line-height: 1;
+      width: fit-content;
+    }
+
   </style>
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -701,6 +716,11 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#050B12">
 
+
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
 </head>
 
 <body>
@@ -708,7 +728,7 @@
     <header class="topbar">
       <div class="bee">🐝</div>
       <div class="title">
-        <h1>Μελισσοζυγαριά</h1>
+        <h1>Μελισσοζυγαριά</h1><div id="versionBadge" class="version-badge">Dashboard v5.5.1</div>
         <div class="status"><span class="dot" id="onlineDot"></span><span id="onlineText">Σύνδεση...</span></div>
       </div>
       <button class="icon-btn" id="refreshBtn" title="Ανανέωση">↻</button>
@@ -889,6 +909,8 @@
     // να βάλεις το token εδώ στο δικό σου ιδιωτικό αντίγραφο του αρχείου.
     // Μην το ανεβάσεις δημόσια αν το συμπληρώσεις.
     const EMBEDDED_UBIDOTS_TOKEN = "";
+    const BEE_SCALE_DASHBOARD_VERSION = "5.5.1-popup-history";
+    console.log("BeeScale Dashboard", BEE_SCALE_DASHBOARD_VERSION);
     const EMBEDDED_DEVICE = "melissi-zygaria";
 
     const TOKEN_KEYS = [
