@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#050B12" />
-  <title>Μελισσοζυγαριά Dashboard v5.3 Compact Weight</title>
+  <title>Μελισσοζυγαριά Dashboard v5.4 Reset History</title>
 
   <link rel="preconnect" href="https://industrial.api.ubidots.com" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -501,7 +501,7 @@
       .bar { width: 15px; }
     }
 
-    /* BeeScale v5.3: πραγματικά μικρότερο πλακάκι βάρους */
+    /* BeeScale v5.4: πραγματικά μικρότερο πλακάκι βάρους */
     .card.big {
       min-height: 0 !important;
       height: auto !important;
@@ -554,6 +554,17 @@
       display: none !important;
     }
 
+  
+    /* BeeScale v5.4 reset history controls */
+    .settings .actions {
+      flex-wrap: wrap;
+    }
+
+    .settings .actions button {
+      flex: 1 1 auto;
+      min-width: 120px;
+    }
+
   </style>
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -583,9 +594,15 @@
       <div class="hint" id="tokenStatus">Token: --</div>
       <label>Device label</label>
       <input id="deviceInput" type="text" value="melissi-zygaria" />
+
+      <label>Ιστορικό βάρους από</label>
+      <input id="historyStartInput" type="date" />
+      <div class="hint" id="historyStatus">Ιστορικό: όλα τα δεδομένα</div>
+
       <div class="actions">
         <button class="primary" id="saveBtn">Αποθήκευση</button>
-        <button class="secondary" id="clearBtn">Καθαρισμός</button>
+        <button class="secondary" id="resetHistoryBtn">Reset ιστορικού</button>
+        <button class="secondary" id="clearBtn">Καθαρισμός token</button>
       </div>
     </section>
 
@@ -754,6 +771,11 @@
       "ubidots_device"
     ];
 
+    const HISTORY_START_KEYS = [
+      "beescale_history_start_v54",
+      "beescale_history_start"
+    ];
+
     const vars = {
       weight: "weight",
       broodTemp: "brood_temp",
@@ -888,19 +910,57 @@
       return { token, device: device || DEFAULT_DEVICE };
     }
 
+    function getHistoryStart() {
+      return storageGet(HISTORY_START_KEYS) || $("historyStartInput")?.value || "";
+    }
+
+    function setHistoryStart(value) {
+      const clean = (value || "").trim();
+      if (clean) {
+        storageSet(HISTORY_START_KEYS, clean);
+      } else {
+        storageRemove(HISTORY_START_KEYS);
+      }
+    }
+
+    function todayKey() {
+      return dateKey(Date.now());
+    }
+
+    function updateHistoryStatus() {
+      const start = getHistoryStart();
+      const el = $("historyStatus");
+      if (!el) return;
+      el.textContent = start
+        ? `Ιστορικό: από ${start}. Οι παλιές τιμές στο Ubidots δεν διαγράφονται, απλώς κρύβονται από τη σελίδα.`
+        : "Ιστορικό: όλα τα δεδομένα";
+    }
+
+    function resetDisplayHistory() {
+      const t = todayKey();
+      $("historyStartInput").value = t;
+      setHistoryStart(t);
+      updateHistoryStatus();
+      setError("Το ιστορικό της σελίδας μηδενίστηκε από σήμερα. Τα παλιά δεδομένα στο Ubidots δεν διαγράφηκαν.");
+      loadData(true);
+    }
+
     function updateTokenStatus() {
       const { token, device } = getConfig();
       const tokenText = token ? `Token: αποθηκευμένο (${token.length} χαρακτήρες)` : "Token: λείπει";
       const deviceText = `Device: ${device || DEFAULT_DEVICE}`;
       const el = $("tokenStatus");
       if (el) el.textContent = `${tokenText} / ${deviceText}`;
+      updateHistoryStatus();
     }
 
     function initConfigUI() {
       const { token, device } = getConfig();
       $("tokenInput").value = token;
       $("deviceInput").value = device || DEFAULT_DEVICE;
+      $("historyStartInput").value = getHistoryStart();
       updateTokenStatus();
+      updateHistoryStatus();
 
       if (token) {
         // Μεταφέρουμε παλιό token από προηγούμενη έκδοση/URL στα νέα keys.
@@ -922,6 +982,7 @@
 
       storageSet(TOKEN_KEYS, token);
       storageSet(DEVICE_KEYS, device);
+      setHistoryStart($("historyStartInput").value);
 
       $("settingsBox").classList.remove("open");
       updateTokenStatus();
@@ -936,7 +997,8 @@
       $("deviceInput").value = DEFAULT_DEVICE;
       $("settingsBox").classList.add("open");
       updateTokenStatus();
-      setError("Βάλε ξανά το Ubidots token.");
+      updateHistoryStatus();
+      setError("Καθαρίστηκε μόνο το token/device. Το reset ιστορικού μένει όπως είναι.");
     }
 
 
@@ -1026,7 +1088,12 @@
     }
 
     function updateDailyDifference(weightValues) {
-      const daysAsc = buildDailyWeights(weightValues);
+      const start = getHistoryStart();
+      const filteredValues = start
+        ? weightValues.filter(item => item && item.timestamp !== undefined && dateKey(item.timestamp) >= start)
+        : weightValues;
+
+      const daysAsc = buildDailyWeights(filteredValues);
       const daysDesc = [...daysAsc].reverse();
 
       const latest = daysAsc[daysAsc.length - 1];
@@ -1047,7 +1114,10 @@
       list.innerHTML = "";
 
       if (daysAsc.length < 2) {
-        list.innerHTML = `<div class="daily-row"><div class="daily-date">Δεν υπάρχουν αρκετές ημέρες</div><div></div><div></div></div>`;
+        const msg = getHistoryStart()
+          ? "Δεν υπάρχουν αρκετές ημέρες μετά το reset"
+          : "Δεν υπάρχουν αρκετές ημέρες";
+        list.innerHTML = `<div class="daily-row"><div class="daily-date">${msg}</div><div></div><div></div></div>`;
         return;
       }
 
@@ -1266,10 +1336,12 @@
 
     $("settingsBtn").addEventListener("click", () => $("settingsBox").classList.toggle("open"));
     $("saveBtn").addEventListener("click", saveConfig);
+    $("resetHistoryBtn").addEventListener("click", resetDisplayHistory);
     $("clearBtn").addEventListener("click", clearConfig);
     $("refreshBtn").addEventListener("click", () => loadData(true));
     $("tokenInput").addEventListener("input", updateTokenStatus);
     $("deviceInput").addEventListener("input", updateTokenStatus);
+    $("historyStartInput").addEventListener("change", () => { setHistoryStart($("historyStartInput").value); updateHistoryStatus(); loadData(true); });
 
     window.addEventListener("focus", () => loadData(true));
     window.addEventListener("online", () => loadData(true));
