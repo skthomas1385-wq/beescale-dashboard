@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#050B12" />
-  <title>Μελισσοζυγαριά Dashboard v5.5.2.2 Grams Delta</title>
+  <title>Μελισσοζυγαριά Dashboard v5.5.3 Delta Unit Fix</title>
 
   <link rel="preconnect" href="https://industrial.api.ubidots.com" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -501,7 +501,7 @@
       .bar { width: 15px; }
     }
 
-    /* BeeScale v5.5.2.2: πραγματικά μικρότερο πλακάκι βάρους */
+    /* BeeScale v5.5.3.2: πραγματικά μικρότερο πλακάκι βάρους */
     .card.big {
       min-height: 0 !important;
       height: auto !important;
@@ -555,7 +555,7 @@
     }
 
   
-    /* BeeScale v5.5.2.2 reset history controls */
+    /* BeeScale v5.5.3.2 reset history controls */
     .settings .actions {
       flex-wrap: wrap;
     }
@@ -566,7 +566,7 @@
     }
 
   
-    /* BeeScale v5.5.2.2 popup history */
+    /* BeeScale v5.5.3.2 popup history */
     .clickable-card {
       position: relative;
       cursor: pointer;
@@ -694,7 +694,7 @@
     }
 
   
-    /* BeeScale v5.5.2.2 visible version/cache helper */
+    /* BeeScale v5.5.3.2 visible version/cache helper */
     .version-badge {
       display: inline-flex;
       margin-top: 3px;
@@ -709,7 +709,7 @@
     }
 
   
-    /* BeeScale v5.5.2 grams daily delta + hidden history label */
+    /* BeeScale v5.5.3 grams daily delta + hidden history label */
     .clickable-card .card-head::after {
       content: "" !important;
       display: none !important;
@@ -739,6 +739,16 @@
       color: var(--green) !important;
     }
 
+  
+    /* BeeScale v5.5.3: fix daily delta double unit */
+    #dailyDelta + .unit {
+      display: none !important;
+    }
+
+    #dailyDelta {
+      white-space: nowrap;
+    }
+
   </style>
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -759,7 +769,7 @@
     <header class="topbar">
       <div class="bee">🐝</div>
       <div class="title">
-        <h1>Μελισσοζυγαριά</h1><div id="versionBadge" class="version-badge">Dashboard v5.5.2.2</div>
+        <h1>Μελισσοζυγαριά</h1><div id="versionBadge" class="version-badge">Dashboard v5.5.3.2</div>
         <div class="status"><span class="dot" id="onlineDot"></span><span id="onlineText">Σύνδεση...</span></div>
       </div>
       <button class="icon-btn" id="refreshBtn" title="Ανανέωση">↻</button>
@@ -940,7 +950,7 @@
     // να βάλεις το token εδώ στο δικό σου ιδιωτικό αντίγραφο του αρχείου.
     // Μην το ανεβάσεις δημόσια αν το συμπληρώσεις.
     const EMBEDDED_UBIDOTS_TOKEN = "";
-    const BEE_SCALE_DASHBOARD_VERSION = "5.5.2-grams-delta";
+    const BEE_SCALE_DASHBOARD_VERSION = "5.5.3-delta-unit-fix";
     console.log("BeeScale Dashboard", BEE_SCALE_DASHBOARD_VERSION);
     const EMBEDDED_DEVICE = "melissi-zygaria";
 
