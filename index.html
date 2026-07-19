@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#050B12" />
-  <title>Μελισσοζυγαριά Dashboard v5.5.1 Popup History</title>
+  <title>Μελισσοζυγαριά Dashboard v5.5.2.2 Grams Delta</title>
 
   <link rel="preconnect" href="https://industrial.api.ubidots.com" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -501,7 +501,7 @@
       .bar { width: 15px; }
     }
 
-    /* BeeScale v5.5.1: πραγματικά μικρότερο πλακάκι βάρους */
+    /* BeeScale v5.5.2.2: πραγματικά μικρότερο πλακάκι βάρους */
     .card.big {
       min-height: 0 !important;
       height: auto !important;
@@ -555,7 +555,7 @@
     }
 
   
-    /* BeeScale v5.5.1 reset history controls */
+    /* BeeScale v5.5.2.2 reset history controls */
     .settings .actions {
       flex-wrap: wrap;
     }
@@ -566,7 +566,7 @@
     }
 
   
-    /* BeeScale v5.5.1 popup history */
+    /* BeeScale v5.5.2.2 popup history */
     .clickable-card {
       position: relative;
       cursor: pointer;
@@ -694,7 +694,7 @@
     }
 
   
-    /* BeeScale v5.5.1 visible version/cache helper */
+    /* BeeScale v5.5.2.2 visible version/cache helper */
     .version-badge {
       display: inline-flex;
       margin-top: 3px;
@@ -706,6 +706,37 @@
       font-size: 10px;
       line-height: 1;
       width: fit-content;
+    }
+
+  
+    /* BeeScale v5.5.2 grams daily delta + hidden history label */
+    .clickable-card .card-head::after {
+      content: "" !important;
+      display: none !important;
+    }
+
+    .delta-negative {
+      color: var(--red) !important;
+    }
+
+    .delta-small-positive {
+      color: var(--yellow) !important;
+    }
+
+    .delta-positive {
+      color: var(--green) !important;
+    }
+
+    .daily-delta.delta-negative {
+      color: var(--red) !important;
+    }
+
+    .daily-delta.delta-small-positive {
+      color: var(--yellow) !important;
+    }
+
+    .daily-delta.delta-positive {
+      color: var(--green) !important;
     }
 
   </style>
@@ -728,7 +759,7 @@
     <header class="topbar">
       <div class="bee">🐝</div>
       <div class="title">
-        <h1>Μελισσοζυγαριά</h1><div id="versionBadge" class="version-badge">Dashboard v5.5.1</div>
+        <h1>Μελισσοζυγαριά</h1><div id="versionBadge" class="version-badge">Dashboard v5.5.2.2</div>
         <div class="status"><span class="dot" id="onlineDot"></span><span id="onlineText">Σύνδεση...</span></div>
       </div>
       <button class="icon-btn" id="refreshBtn" title="Ανανέωση">↻</button>
@@ -885,7 +916,7 @@
     <div class="history-modal-card" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
       <div class="history-modal-head">
         <div>
-          <h2 id="historyTitle">Ιστορικό</h2>
+          <h2 id="historyTitle">Προηγούμενες τιμές</h2>
           <div id="historySubtitle" class="history-subtitle">Προηγούμενες τιμές</div>
         </div>
         <button id="historyClose" class="history-close" type="button" aria-label="Κλείσιμο">×</button>
@@ -909,7 +940,7 @@
     // να βάλεις το token εδώ στο δικό σου ιδιωτικό αντίγραφο του αρχείου.
     // Μην το ανεβάσεις δημόσια αν το συμπληρώσεις.
     const EMBEDDED_UBIDOTS_TOKEN = "";
-    const BEE_SCALE_DASHBOARD_VERSION = "5.5.1-popup-history";
+    const BEE_SCALE_DASHBOARD_VERSION = "5.5.2-grams-delta";
     console.log("BeeScale Dashboard", BEE_SCALE_DASHBOARD_VERSION);
     const EMBEDDED_DEVICE = "melissi-zygaria";
 
@@ -991,6 +1022,21 @@
       if (!Number.isFinite(delta)) return "--";
       return `${delta > 0 ? "+" : ""}${delta.toFixed(2)}`;
     }
+
+    function deltaGramsClass(deltaKg) {
+      const g = Math.round(Number(deltaKg) * 1000);
+      if (!Number.isFinite(g)) return "";
+      if (g < 0) return "delta-negative";
+      if (g <= 500) return "delta-small-positive";
+      return "delta-positive";
+    }
+
+    function signedGrams(deltaKg) {
+      const g = Math.round(Number(deltaKg) * 1000);
+      if (!Number.isFinite(g)) return "-- g";
+      return `${g >= 0 ? "+" : ""}${g} g`;
+    }
+
 
     function setError(message) {
       const box = $("errorBox");
@@ -1272,8 +1318,8 @@
           dateLabel(row.date),
           `${fmt(row.value, 2)} kg`,
           Number.isFinite(row.delta)
-            ? `<span class="${deltaClass(row.delta)}">${signed(row.delta)} kg</span>`
-            : `<span class="flat">-- kg</span>`
+            ? `<span class="${deltaGramsClass(row.delta)}">${signedGrams(row.delta)}</span>`
+            : `<span class="flat">-- g</span>`
         ])
       };
 
@@ -1282,8 +1328,8 @@
 
       if (latest && previous) {
         const delta = latest.value - previous.value;
-        $("dailyDelta").textContent = signed(delta);
-        $("dailyDelta").className = "value " + deltaClass(delta);
+        $("dailyDelta").textContent = signedGrams(delta);
+        $("dailyDelta").className = "value " + deltaGramsClass(delta);
         $("dailyDeltaText").textContent = `${dateLabel(latest.date)} σε σχέση με ${dateLabel(previous.date)}`;
       } else {
         $("dailyDelta").textContent = "--";
@@ -1308,7 +1354,7 @@
           <div class="daily-row">
             <div class="daily-date">${dateLabel(row.date)}</div>
             <div class="daily-weight">${fmt(row.value, 2)} kg</div>
-            <div class="daily-delta ${deltaClass(row.delta)}">${signed(row.delta)} kg</div>
+            <div class="daily-delta ${deltaGramsClass(row.delta)}">${signedGrams(row.delta)}</div>
           </div>
         `).join("");
 
@@ -1436,7 +1482,7 @@
 
     function openHistory(key) {
       const data = key === "daily" ? historyStore.daily : historyStore.metrics[key];
-      $("historyTitle").textContent = data?.title || "Ιστορικό";
+      $("historyTitle").textContent = data?.title || "Προηγούμενες τιμές";
       $("historySubtitle").textContent = data?.subtitle || "Προηγούμενες τιμές";
       $("historyContent").innerHTML = renderHistoryTable(data);
       $("historyModal").classList.add("show");
