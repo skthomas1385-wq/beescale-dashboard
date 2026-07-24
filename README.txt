@@ -1,14 +1,12 @@
-BeeScale Dashboard v5.5.1 Popup History Cache Fix
+BeeScale Dashboard v5.6 Weather Forecast
 
-Ανέβασε ΟΛΑ τα αρχεία στο root του GitHub repository και κάνε Commit changes.
-
-Διαφορά από v5.5:
-- Προστέθηκε ορατό badge "Dashboard v5.5.1" στην κορυφή, για να ξέρεις ότι φορτώθηκε η νέα έκδοση.
-- Προστέθηκαν no-cache meta tags.
-- Παραμένει η λειτουργία popup history.
+Αλλαγές:
+- Προστέθηκε πλακάκι "Πρόβλεψη Καιρού" από τις μετρήσεις BME280.
+- Υπολογίζει τάση πίεσης 3h/6h, υγρασία 3h και θερμοκρασία 3h.
+- Δείχνει: Σταθερός, Βελτίωση, Αλλαγή καιρού, Πιθανή βροχή ή Πιθανή καταιγίδα.
+- Με πάτημα στο πλακάκι ανοίγει αναδυόμενο παράθυρο με αναλυτικά στοιχεία.
+- Δεν χρειάζεται αλλαγή firmware, επειδή χρησιμοποιεί ήδη pressure / humidity / ambient_temp από Ubidots.
 - Δεν περιέχει embedded Ubidots token.
 
-Μετά το upload άνοιξε:
-https://skthomas1385-wq.github.io/beescale-dashboard/?v=551
-
-Το ?v=551 αναγκάζει τον browser/Hermit να μη χρησιμοποιήσει την παλιά cache.
+Για αποφυγή cache άνοιξε:
+https://skthomas1385-wq.github.io/beescale-dashboard/?v=560

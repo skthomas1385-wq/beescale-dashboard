@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#050B12" />
-  <title>Μελισσοζυγαριά Dashboard v5.5.3 Delta Unit Fix</title>
+  <title>Μελισσοζυγαριά Dashboard v5.6 Weather Forecast</title>
 
   <link rel="preconnect" href="https://industrial.api.ubidots.com" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -501,7 +501,7 @@
       .bar { width: 15px; }
     }
 
-    /* BeeScale v5.5.3.2: πραγματικά μικρότερο πλακάκι βάρους */
+    /* BeeScale v5.6.2: πραγματικά μικρότερο πλακάκι βάρους */
     .card.big {
       min-height: 0 !important;
       height: auto !important;
@@ -555,7 +555,7 @@
     }
 
   
-    /* BeeScale v5.5.3.2 reset history controls */
+    /* BeeScale v5.6.2 reset history controls */
     .settings .actions {
       flex-wrap: wrap;
     }
@@ -566,7 +566,7 @@
     }
 
   
-    /* BeeScale v5.5.3.2 popup history */
+    /* BeeScale v5.6.2 popup history */
     .clickable-card {
       position: relative;
       cursor: pointer;
@@ -694,7 +694,7 @@
     }
 
   
-    /* BeeScale v5.5.3.2 visible version/cache helper */
+    /* BeeScale v5.6.2 visible version/cache helper */
     .version-badge {
       display: inline-flex;
       margin-top: 3px;
@@ -709,7 +709,7 @@
     }
 
   
-    /* BeeScale v5.5.3 grams daily delta + hidden history label */
+    /* BeeScale v5.6 grams daily delta + hidden history label */
     .clickable-card .card-head::after {
       content: "" !important;
       display: none !important;
@@ -740,7 +740,7 @@
     }
 
   
-    /* BeeScale v5.5.3: fix daily delta double unit */
+    /* BeeScale v5.6: fix daily delta double unit */
     #dailyDelta + .unit {
       display: none !important;
     }
@@ -748,6 +748,35 @@
     #dailyDelta {
       white-space: nowrap;
     }
+
+  
+    /* BeeScale v5.6 local weather forecast from BME280 */
+    .weather-body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 118px;
+    }
+
+    .weather-status {
+      font-size: clamp(24px, 6.5vw, 34px);
+      line-height: 1.05;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .weather-detail {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      min-height: 34px;
+    }
+
+    .weather-stable { color: #60A5FA !important; }
+    .weather-good { color: var(--green) !important; }
+    .weather-watch { color: var(--yellow) !important; }
+    .weather-bad { color: var(--red) !important; }
 
   </style>
 
@@ -769,7 +798,7 @@
     <header class="topbar">
       <div class="bee">🐝</div>
       <div class="title">
-        <h1>Μελισσοζυγαριά</h1><div id="versionBadge" class="version-badge">Dashboard v5.5.3.2</div>
+        <h1>Μελισσοζυγαριά</h1><div id="versionBadge" class="version-badge">Dashboard v5.6.2</div>
         <div class="status"><span class="dot" id="onlineDot"></span><span id="onlineText">Σύνδεση...</span></div>
       </div>
       <button class="icon-btn" id="refreshBtn" title="Ανανέωση">↻</button>
@@ -876,6 +905,15 @@
         </div>
       </article>
 
+      <article class="card weather-card">
+        <div class="card-head"><div class="ico" id="weatherIcon">🌤️</div><h2>Πρόβλεψη Καιρού</h2></div>
+        <div class="card-body weather-body">
+          <div class="weather-status" id="weatherForecast">--</div>
+          <div class="weather-detail" id="weatherTrend">--</div>
+          <div class="time" id="weatherTime">--</div>
+        </div>
+      </article>
+
       <article class="card">
         <div class="card-head"><div class="ico" style="color:var(--green)">🔋</div><h2>Μπαταρία</h2></div>
         <div class="card-body metric">
@@ -944,13 +982,14 @@
     const FETCH_TIMEOUT_MS = 25000;
     const HARD_RELOAD_AFTER_MS = 20 * 60 * 1000;
     const WEIGHT_HISTORY_POINTS = 800;
-    const METRIC_HISTORY_POINTS = 20;
+    const METRIC_HISTORY_POINTS = 24;
+    const WEATHER_HISTORY_POINTS = 36;
 
     // Αν το Android/HTML viewer δεν κρατάει localStorage, μπορείς προαιρετικά
     // να βάλεις το token εδώ στο δικό σου ιδιωτικό αντίγραφο του αρχείου.
     // Μην το ανεβάσεις δημόσια αν το συμπληρώσεις.
     const EMBEDDED_UBIDOTS_TOKEN = "";
-    const BEE_SCALE_DASHBOARD_VERSION = "5.5.3-delta-unit-fix";
+    const BEE_SCALE_DASHBOARD_VERSION = "5.6-weather-forecast";
     console.log("BeeScale Dashboard", BEE_SCALE_DASHBOARD_VERSION);
     const EMBEDDED_DEVICE = "melissi-zygaria";
 
@@ -1512,6 +1551,7 @@
         ["ambientTemp", "ambient"],
         ["humidity", "humidity"],
         ["pressure", "pressure"],
+        ["weatherForecast", "weather"],
         ["batteryPercent", "battery"],
         ["rssi", "rssi"],
         ["networkType", "network"]
@@ -1563,6 +1603,129 @@
       };
     }
 
+
+    function valueAgo(values, hours) {
+      if (!values || values.length < 2) return null;
+      const latest = values[0];
+      if (!latest || latest.timestamp === undefined) return null;
+      const target = Number(latest.timestamp) - hours * 3600000;
+      let best = null;
+      let bestDiff = Infinity;
+      values.forEach(item => {
+        if (!item || item.timestamp === undefined) return;
+        if (Number(item.timestamp) > Number(latest.timestamp) - 30 * 60000) return;
+        const diff = Math.abs(Number(item.timestamp) - target);
+        if (diff < bestDiff) {
+          best = item;
+          bestDiff = diff;
+        }
+      });
+      return best;
+    }
+
+    function trendValue(values, hours) {
+      const latest = values && values[0];
+      const old = valueAgo(values, hours);
+      if (!latest || !old) return null;
+      const delta = Number(latest.value) - Number(old.value);
+      if (!Number.isFinite(delta)) return null;
+      return { delta, latest, old, hours };
+    }
+
+    function signedFixed(value, decimals = 1, unit = "") {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return "--";
+      return `${n >= 0 ? "+" : ""}${n.toFixed(decimals)}${unit}`;
+    }
+
+    function weatherClassAndIcon(kind) {
+      if (kind === "bad") return { cls: "weather-bad", icon: "⛈️" };
+      if (kind === "watch") return { cls: "weather-watch", icon: "🌦️" };
+      if (kind === "good") return { cls: "weather-good", icon: "☀️" };
+      return { cls: "weather-stable", icon: "🌤️" };
+    }
+
+    function analyzeLocalWeather(pressValues, humValues, ambientValues) {
+      const p3 = trendValue(pressValues, 3);
+      const p6 = trendValue(pressValues, 6);
+      const h3 = trendValue(humValues, 3);
+      const t3 = trendValue(ambientValues, 3);
+      const latestP = pressValues && pressValues[0];
+      const latestH = humValues && humValues[0];
+
+      let title = "Αναμονή";
+      let kind = "stable";
+      let confidence = "Χρειάζονται περισσότερες μετρήσεις";
+
+      const pressureDelta = p3?.delta ?? p6?.delta ?? null;
+      const pressureHours = p3 ? 3 : (p6 ? 6 : null);
+      const humidityDelta = h3?.delta ?? null;
+
+      if (pressureDelta === null) {
+        title = "Λίγα δεδομένα";
+      } else if (pressureDelta <= -5 || (pressureDelta <= -3 && humidityDelta !== null && humidityDelta >= 6)) {
+        title = "Πιθανή καταιγίδα";
+        kind = "bad";
+        confidence = "Η πίεση πέφτει γρήγορα";
+      } else if (pressureDelta <= -3 || (pressureDelta <= -2 && humidityDelta !== null && humidityDelta >= 4)) {
+        title = "Πιθανή βροχή";
+        kind = "bad";
+        confidence = "Πτώση πίεσης και αύξηση υγρασίας";
+      } else if (pressureDelta <= -1) {
+        title = "Αλλαγή καιρού";
+        kind = "watch";
+        confidence = "Η πίεση έχει πτωτική τάση";
+      } else if (pressureDelta >= 2) {
+        title = "Βελτίωση";
+        kind = "good";
+        confidence = "Η πίεση ανεβαίνει";
+      } else {
+        title = "Σταθερός";
+        kind = "stable";
+        confidence = "Η πίεση είναι σχεδόν σταθερή";
+      }
+
+      const detailParts = [];
+      if (pressureDelta !== null) detailParts.push(`Πίεση ${signedFixed(pressureDelta, 1, " hPa")} / ${pressureHours}h`);
+      if (humidityDelta !== null) detailParts.push(`Υγρασία ${signedFixed(humidityDelta, 1, "%")} / 3h`);
+      const detail = detailParts.length ? detailParts.join(" · ") : confidence;
+      const ci = weatherClassAndIcon(kind);
+
+      historyStore.metrics.weather = {
+        title: "Τοπική Πρόβλεψη Καιρού",
+        subtitle: "Με βάση BME280: πίεση, υγρασία και θερμοκρασία",
+        headers: ["Ένδειξη", "Τιμή"],
+        rows: [
+          ["Εκτίμηση", `<span class="${ci.cls}">${escapeHtml(title)}</span>`],
+          ["Σχόλιο", escapeHtml(confidence)],
+          ["Πίεση τώρα", latestP ? `${fmt(latestP.value, 1)} hPa` : "--"],
+          ["Πίεση 3h", p3 ? `${signedFixed(p3.delta, 1, " hPa")}` : "--"],
+          ["Πίεση 6h", p6 ? `${signedFixed(p6.delta, 1, " hPa")}` : "--"],
+          ["Υγρασία τώρα", latestH ? `${fmt(latestH.value, 1)} %` : "--"],
+          ["Υγρασία 3h", h3 ? `${signedFixed(h3.delta, 1, "%")}` : "--"],
+          ["Θερμοκρασία 3h", t3 ? `${signedFixed(t3.delta, 1, " °C")}` : "--"],
+          ["Ορίζοντας", "Εκτίμηση για επόμενες 6–12 ώρες"],
+          ["Σημείωση", "Τοπική τάση, όχι επίσημη πρόγνωση"]
+        ]
+      };
+
+      return { title, detail, cls: ci.cls, icon: ci.icon, timestamp: latestP?.timestamp || latestH?.timestamp };
+    }
+
+    function updateWeatherForecast(pressValues, humValues, ambientValues) {
+      const result = analyzeLocalWeather(pressValues, humValues, ambientValues);
+      const titleEl = $("weatherForecast");
+      const detailEl = $("weatherTrend");
+      const iconEl = $("weatherIcon");
+      const timeEl = $("weatherTime");
+      if (!titleEl || !detailEl || !iconEl || !timeEl) return;
+      titleEl.textContent = result.title;
+      titleEl.className = "weather-status " + result.cls;
+      detailEl.textContent = result.detail;
+      iconEl.textContent = result.icon;
+      timeEl.textContent = result.timestamp ? fmtTime(result.timestamp) : "--";
+    }
+
     async function loadData(force = false) {
       if (loadInProgress && !force) return;
       loadInProgress = true;
@@ -1605,9 +1768,9 @@
         ] = await Promise.all([
           getValues(device, vars.weight, token, WEIGHT_HISTORY_POINTS),
           getValues(device, vars.broodTemp, token, METRIC_HISTORY_POINTS),
-          getValues(device, vars.ambientTemp, token, METRIC_HISTORY_POINTS),
-          getValues(device, vars.humidity, token, METRIC_HISTORY_POINTS),
-          getValues(device, vars.pressure, token, METRIC_HISTORY_POINTS),
+          getValues(device, vars.ambientTemp, token, WEATHER_HISTORY_POINTS),
+          getValues(device, vars.humidity, token, WEATHER_HISTORY_POINTS),
+          getValues(device, vars.pressure, token, WEATHER_HISTORY_POINTS),
           getValues(device, vars.batteryV, token, METRIC_HISTORY_POINTS),
           getValues(device, vars.batteryP, token, METRIC_HISTORY_POINTS),
           getValues(device, vars.rssi, token, METRIC_HISTORY_POINTS),
@@ -1649,6 +1812,7 @@
         $("pressure").textContent = fmt(press?.value, 1);
         $("pressureTime").textContent = fmtTime(press?.timestamp);
         setSimpleHistory("pressure", "Ατμοσφαιρική Πίεση", pressValues, "hPa", 1);
+        updateWeatherForecast(pressValues, humValues, ambientValues);
 
         $("batteryPercent").textContent = fmt(battP?.value, 0);
         $("batteryVolt").textContent = `${fmt(battV?.value, 2)} V`;
